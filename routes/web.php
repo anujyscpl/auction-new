@@ -33,6 +33,8 @@ Route::group(['prefix' => 'admin'], function () {
     Route::resource('admins', 'Backend\AdminsController', ['names' => 'admin.admins']);
     Route::resource('products', 'Backend\ProductsController', ['names' => 'admin.products']);
 
+    Route::post('/sub-category', 'Backend\CategoryController@getSubCategories');
+
 
     // Login Routes
     Route::get('/login', 'Backend\Auth\LoginController@showLoginForm')->name('admin.login');

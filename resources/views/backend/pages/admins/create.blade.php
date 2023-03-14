@@ -6,7 +6,6 @@ Admin Create - Admin Panel
 @endsection
 
 @section('styles')
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
 
 <style>
     .form-check-label {
@@ -46,7 +45,7 @@ Admin Create - Admin Panel
                 <div class="card-body">
                     <h4 class="header-title">Create New Role</h4>
                     @include('backend.layouts.partials.messages')
-                    
+
                     <form action="{{ route('admin.admins.store') }}" method="POST">
                         @csrf
                         <div class="form-row">
@@ -85,20 +84,19 @@ Admin Create - Admin Panel
                                 <input type="text" class="form-control" id="username" name="username" placeholder="Enter Username" required>
                             </div>
                         </div>
-                        
+
                         <button type="submit" class="btn btn-primary mt-4 pr-4 pl-4">Save Admin</button>
                     </form>
                 </div>
             </div>
         </div>
         <!-- data table end -->
-        
+
     </div>
 </div>
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
         $('.select2').select2();

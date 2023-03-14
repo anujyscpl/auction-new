@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
+use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductImage;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
@@ -12,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
@@ -53,44 +56,81 @@ class ProductsController extends Controller
             abort(403, 'Sorry !! You are Unauthorized to create any admin !');
         }
 
-        $roles  = Role::all();
-        return view('backend.pages.products.create', compact('roles'));
+        $category  = Category::all();
+        return view('backend.pages.products.create', compact('category'));
     }
 
+    public function addProducts(Request $request)
+    {
+        return response()->json([$request->all()]);
+
+    }
     /**
      * Store a newly created resource in storage.
      *
      * @param Request $request
      * @return RedirectResponse
      */
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request)
     {
-        if (is_null($this->user) || !$this->user->can('admin.create')) {
-            abort(403, 'Sorry !! You are Unauthorized to create any admin !');
+        try {
+            DB::beginTransaction();
+            if (is_null($this->user) || !$this->user->can('admin.create')) {
+                abort(403, 'Sorry !! You are Unauthorized to create any admin !');
+            }
+
+            // Validation Data
+            $request->validate([
+                'name' => 'required|string|max:50',
+                'description' => 'required|string',
+                'asking_price' => 'required|numeric',
+                'sku' => 'required|string|max:50',
+                'sub_category' => 'required|integer',
+                'category' => 'required|integer',
+                'type' => 'required|integer',
+                'issued_year' => 'required|integer',
+                'is_featured' => 'required|integer',
+                'seller_id' => 'required|integer',
+                'images' => 'required',
+                'images.*' => 'mimes:jpeg,jpg,png,gif,csv,txt,pdf|max:2048'
+            ]);
+
+            // Create New Admin
+            $product = Product::create([
+                'name' => $request->name,
+                'description' => $request->description,
+                'sku' => $request->sku,
+                'asking_price' => $request->asking_price,
+                'sub_category_id' => $request->sub_category,
+                'type' => $request->type,
+                'issued_year' => $request->issued_year,
+                'is_featured' => $request->is_featured,
+                'seller_id' => $request->seller_id,
+            ]);
+            if (!$product) {
+                DB::rollBack();
+                session()->flash('error', 'Unable to create product !!');
+            }
+            if ($request->hasfile('images')) {
+                foreach ($request->file('images') as $file) {
+                    $name = $file->getClientOriginalName();
+                    $file->move(public_path() . '/uploads/', $name);
+
+                    ProductImage::create([
+                        'product_id' => $product->id,
+                        'file_name' => $name
+                    ]);
+                }
+            }
+            DB::commit();
+            session()->flash('success', 'Product has been created !!');
+            return redirect()->route('admin.products.index');
+        }catch (\Exception $e){
+
+            DB::rollBack();
+            session()->flash('error', $e->getMessage());
+            Return redirect()->route('admin.products.create');
         }
-
-        // Validation Data
-        $request->validate([
-            'name' => 'required|max:50',
-            'email' => 'required|max:100|email|unique:admins',
-            'username' => 'required|max:100|unique:admins',
-            'password' => 'required|min:6|confirmed',
-        ]);
-
-        // Create New Admin
-        $admin = new Admin();
-        $admin->name = $request->name;
-        $admin->username = $request->username;
-        $admin->email = $request->email;
-        $admin->password = Hash::make($request->password);
-        $admin->save();
-
-        if ($request->roles) {
-            $admin->assignRole($request->roles);
-        }
-
-        session()->flash('success', 'Admin has been created !!');
-        return redirect()->route('admin.products.index');
     }
 
     /**
